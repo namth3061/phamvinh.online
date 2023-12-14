@@ -233,6 +233,8 @@
                 } else {
                     table.draw();
                 }
+
+                $('#exampleInputEmail1').val('')
             },
             error: function (xhr, status, error) {
                 console.error(error);
