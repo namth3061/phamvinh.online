@@ -64,15 +64,16 @@ class HomeController extends Controller
     {
         $string = trim(preg_replace('/\s\s+/', ' ', $request->input('numbers')));
 
-        $data = explode(',', $string);
+        $data = explode(' ', $string);
+
         $arr = [];
         foreach ($data as $datum) {
-            if (empty($datum)) {
-                continue;
-            }
+            if (empty($datum)) continue;
+
+            $bool = str_contains($datum, '.');
 
             $arr[] = [
-                'numbers' => trim($datum),
+                'numbers' => $bool ? $datum : implode(".", str_split($datum)),
             ];
         }
 
@@ -81,7 +82,8 @@ class HomeController extends Controller
         return true;
     }
 
-    public function delete($id) {
+    public function delete($id)
+    {
         DB::table('number_lists')
             ->whereId($id)
             ->delete();
