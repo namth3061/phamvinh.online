@@ -87,7 +87,7 @@
                             </div>
                             <!-- /.card-header -->
                             <div class="card-body">
-                                <table id="example2" class="table table-bordered table-hover" width="100%">
+                                <table id="example2" class="table table-responsive table-bordered table-hover" width="100%">
                                     <thead>
                                     <tr>
                                         <th width="10%">STT</th>
