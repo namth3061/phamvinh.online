@@ -70,10 +70,8 @@ class HomeController extends Controller
         foreach ($data as $datum) {
             if (empty($datum)) continue;
 
-            $bool = str_contains($datum, '.');
-
             $arr[] = [
-                'numbers' => $bool ? $datum : implode(".", str_split($datum)),
+                'numbers' => $datum,
             ];
         }
 

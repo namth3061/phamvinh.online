@@ -11,11 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('number_lists', function (Blueprint $table) {
-            $table->bigIncrements('id');
-            $table->string('numbers', 255);
-            $table->timestamps();
-        });
+        //
+        DB::update('alter table `number_lists` modify `numbers` VARCHAR(200) UNIQUE NOT NULL');
+
     }
 
     /**
@@ -23,8 +21,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('number_lists', function (Blueprint $table) {
-            //
-        });
+        //
     }
 };

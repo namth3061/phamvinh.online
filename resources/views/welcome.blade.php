@@ -21,6 +21,7 @@
         td {
             font-size: 20px;
             word-spacing: 10px;
+            letter-spacing: 3px;
         }
 
         .dataTables_filter {
@@ -53,7 +54,7 @@
         <section class="content">
             <div class="container-fluid">
                 <div class="row">
-                    <div class="col-md-3">
+                    <div class="col-md-4">
                         <div class="card card-warning">
                             <div class="card-header">
                                 <h3 class="card-title">Search</h3>
@@ -76,43 +77,6 @@
                             </div>
                             <!-- /.card-body -->
                         </div>
-                    </div>
-                    <div class="col-md-5">
-                        <!-- general form elements -->
-                        <div class="card card-primary">
-                            <div class="card-header">
-                                <h3 class="card-title">Kết quả tìm kiếm: <span id="total"
-                                                                               class="font-weight-bold">{{ $totalRecords }}</span>
-                                </h3>
-                            </div>
-                            <!-- /.card-header -->
-                            <div class="card-body">
-                                <table id="example2" class="table table-responsive table-bordered table-hover" width="100%">
-                                    <thead>
-                                    <tr>
-                                        <th width="10%">STT</th>
-                                        <th width="80%">Dãy số</th>
-                                        <th width="10%">Action</th>
-                                    </tr>
-                                    </thead>
-                                    <tbody>
-
-                                    </tbody>
-                                    <tfoot>
-                                    <tr>
-                                        <th>STT</th>
-                                        <th>Dãy số</th>
-                                        <th>Action</th>
-                                    </tr>
-                                    </tfoot>
-                                </table>
-                            </div>
-                            <!-- /.card-body -->
-                        </div>
-                        <!-- /.card -->
-
-                    </div>
-                    <div class="col-md-4">
                         <!-- general form elements -->
                         <div class="card card-primary">
                             <div class="card-header">
@@ -134,6 +98,40 @@
                                     <button type="submit" class="btn btn-primary">Submit</button>
                                 </div>
                             </form>
+                        </div>
+                        <!-- /.card -->
+                    </div>
+                    <div class="col-md-8">
+                        <!-- general form elements -->
+                        <div class="card card-primary">
+                            <div class="card-header">
+                                <h3 class="card-title">Kết quả tìm kiếm: <span id="total"
+                                                                               class="font-weight-bold">{{ $totalRecords }}</span>
+                                </h3>
+                            </div>
+                            <!-- /.card-header -->
+                            <div class="card-body">
+                                <table id="example2" class="table table-responsive table-bordered table-hover" width="100%">
+                                    <thead>
+                                    <tr>
+                                        <th width="10%">STT</th>
+                                        <th width="100%">Dãy số</th>
+                                        <th width="10%">Action</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+
+                                    </tbody>
+                                    <tfoot>
+                                    <tr>
+                                        <th>STT</th>
+                                        <th>Dãy số</th>
+                                        <th>Action</th>
+                                    </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                            <!-- /.card-body -->
                         </div>
                         <!-- /.card -->
 
@@ -212,7 +210,9 @@
     });
 
     $('#general_search').keyup(function () {
-        let list = this.value.split('.'), total = 0;
+        let myFunc = num => Number(num);
+        let list = Array.from(String(this.value), myFunc);
+        let total = 0;
         for (var i in list) total += Number(list[i]);
         $('#total_list').text(total)
         table.search(this.value).draw();
