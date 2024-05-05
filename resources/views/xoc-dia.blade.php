@@ -175,7 +175,7 @@
         processing: true,
         serverSide: true,
         ajax: {
-            url: "/data",
+            url: "/xoc-dia/data",
             dataType: "json",
             type: "POST",
             data: function (d) {
@@ -231,7 +231,7 @@
         var formData = $(this).serialize();
 
         $.ajax({
-            url: '/store',
+            url: '/xoc-dia/store',
             type: 'POST',
             data: formData,
             success: function (response) {
@@ -252,7 +252,7 @@
 
     function deleteRecord(id) {
         $.ajax({
-            url: '/delete/' + id,
+            url: '/xoc-dia/delete/' + id,
             type: 'DELETE',
             success: function (response) {
                 table.draw();
