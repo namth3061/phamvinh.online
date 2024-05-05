@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Response;
 use Yajra\DataTables\Facades\DataTables;
 
 class XocDiaController extends Controller
@@ -44,6 +45,25 @@ class XocDiaController extends Controller
         return response()->json($data);
     }
 
+    public function download()
+    {
+        $numbers = XocdiaNumberList::select(['numbers'])
+            ->pluck('numbers')
+            ->toArray();
+        $content = '';
+        foreach ($numbers as $number) {
+            $content .= $number;
+            $content .= "\n";
+        }
+
+        $fileName = "xoc-dia.txt";
+        $headers = [
+            'Content-type' => 'text/plain',
+            'Content-Disposition' => sprintf('attachment; filename="%s"', $fileName),
+        ];
+
+        return Response::make($content, 200, $headers);
+    }
 
     private function getFilteredRecordCount($query, $request)
     {

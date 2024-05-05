@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Response;
 use Yajra\DataTables\Facades\DataTables;
 
 class HomeController extends Controller
@@ -42,6 +43,26 @@ class HomeController extends Controller
         $data['recordsSearched'] = $this->getFilteredRecordCount($numbers, $request);
 
         return response()->json($data);
+    }
+
+    public function download()
+    {
+        $numbers = NumberList::select(['numbers'])
+            ->pluck('numbers')
+            ->toArray();
+        $content = '';
+        foreach ($numbers as $number) {
+            $content .= $number;
+            $content .= "\n";
+        }
+
+        $fileName = "bcr.txt";
+        $headers = [
+            'Content-type' => 'text/plain',
+            'Content-Disposition' => sprintf('attachment; filename="%s"', $fileName),
+        ];
+
+        return Response::make($content, 200, $headers);
     }
 
 

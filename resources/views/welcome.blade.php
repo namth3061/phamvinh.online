@@ -114,6 +114,11 @@
                                 <h3 class="card-title">Kết quả tìm kiếm: <span id="total"
                                                                                class="font-weight-bold">{{ $totalRecords }}</span>
                                 </h3>
+                                <button class="btn btn-dark" style="float: right">
+                                    <a href="/download" style="color: white">
+                                        File 👇
+                                    </a>
+                                </button>
                             </div>
                             <!-- /.card-header -->
                             <div class="card-body">
