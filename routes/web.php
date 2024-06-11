@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\TableController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -25,3 +26,5 @@ Route::get('/xoc-dia/download', 'XocDiaController@download');
 Route::post('/xoc-dia/store', 'XocDiaController@store');
 Route::delete('/xoc-dia/delete/{id}', 'XocDiaController@delete');
 
+Route::get('tables', [TableController::class, 'index']);
+Route::post('/save-tables', [TableController::class, 'store']);
