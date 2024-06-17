@@ -24,4 +24,3 @@ Route::post('/xoc-dia/data', 'XocDiaController@data');
 Route::get('/xoc-dia/download', 'XocDiaController@download');
 Route::post('/xoc-dia/store', 'XocDiaController@store');
 Route::delete('/xoc-dia/delete/{id}', 'XocDiaController@delete');
-
