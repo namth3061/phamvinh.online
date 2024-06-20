@@ -52,7 +52,7 @@
                 <div class="col">
                     <input type="text" wire:model="columnsIndex" id="searchInput" class="form-control" placeholder="1 2 3 4 5 6 7 8">
                     <button wire:loading.attr="disabled" wire:click="search"id="findTableButton" class="btn btn-secondary mt-2">Find Matching Table</button>
-                    <div wire:loading> 
+                    <div wire:loading>
                         Finding ...
                     </div>
                 </div>
@@ -63,6 +63,7 @@
         <div id="tablesContainer">
             @foreach($tables as $table)
             <button x-on:click="$wire.expandTable({{$table->id}})" class="btn btn-warning">Expand</button>
+            <button x-on:click="$wire.collapseTable({{$table->id}})" class="btn btn-danger">Collapse</button>
                 <div class="table-responsive">
                     <table class="table table-bordered">
                         @foreach($table->rows as $keyRow => $rows)
@@ -75,6 +76,7 @@
                     </table>
                 </div>
             @endforeach
+            {{ $tables->links() }}
         </div>
         @if ($tables->isEmpty())
             <div class="alert alert-warning">Don't match with any tables</div>

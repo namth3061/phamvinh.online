@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use function implode;
+use function strpos;
 
 class Tables extends Component
 {
@@ -16,23 +18,21 @@ class Tables extends Component
 
     public $ignoreIds = [];
 
-
-
     public function render()
     {
         $tables = Table::with('indexs')->select(['id'])
-        ->whereNotIn('id', $this->ignoreIds)->get();
+        ->whereNotIn('id', $this->ignoreIds)->latest()->paginate(10);
 
         return view('livewire.tables', ['tables' => $tables]);
     }
 
-    public function fillColor($tableId, $color, $rowIndex, $columnIndex)
-    {   
+    public function fillColor($tableId, $color, $rowIndex, $columnIndex): void
+    {
         $symbol = in_array($color, ['red', 'blue']) ? 'O' : 'X';
         if (is_null($color)) {
             $symbol = null;
         }
-        
+
         $table = TableIndex::where([
             'table_id' => $tableId,
             'row' => $rowIndex,
@@ -43,7 +43,7 @@ class Tables extends Component
         ]);
     }
 
-    public function addTable()
+    public function addTable(): void
     {
         $table = Table::create();
         $table->indexs()->insert(Table::defineDefaultTableIndexs($table->id));
@@ -52,24 +52,27 @@ class Tables extends Component
     public function search()
     {
         $this->ignoreIds = [];
-
         $searchs = explode(' ', $this->columnsIndex, 15);
+        if (!$searchs) {
+            return;
+        }
         $tables = Table::with('indexs')->select(['id'])
         ->get();
 
         foreach ($tables as $table)
         {
-            foreach ($searchs as $key => $search) {
-                if ($search === '') {
-                    continue;
-                }
-                $totalSymbol = $this->countVertical($table, ($key + 1));
-                if ($totalSymbol !== (int) $search) {
-                    $this->ignoreIds[] = $table->id;
-                    break;
-                }
+            $table->indexString = '';
+            for ($i = 1; $i <= $table->indexs->max('column') ; $i++) {
+                $totalSymbol = $this->countVertical($table, $i);
+                $table->indexString.=$totalSymbol;
             }
         }
+
+        $tables->each(function ($item) use ($searchs) {
+            if (strpos($item->indexString, implode('', $searchs)) === false) {
+                $this->ignoreIds[] = $item->id;
+            }
+        });
     }
 
     public function countVertical(Table $table, int $columnIndex)
@@ -79,7 +82,7 @@ class Tables extends Component
             ->where('column', $columnIndex)
             ->values()
             ->sortBy('row');
-        
+
         if ($tableIndexs->where('symbol', 'O')->isEmpty()) {
             // done have any symbol
             return 0;
@@ -104,7 +107,7 @@ class Tables extends Component
                 return true;
             }
         });
-  
+
         if ($tableIndexs->where('symbol', 'O')->isEmpty()) {
             // done have any symbol
             return 0;
@@ -114,7 +117,7 @@ class Tables extends Component
         if ($beginRow === 1) {
             return $tableIndexs->where('symbol', 'O')->count();
         }
-       
+
         // count external column
         $countHorizon = $this->countHorizon($table, $beginRow, $columnIndex, $initColor);
 
@@ -154,5 +157,21 @@ class Tables extends Component
         $data = Table::defineExpandDefaultTable($tableId);
 
         TableIndex::insert($data);
+    }
+
+    public function collapseTable($tableId)
+    {
+        $table = TableIndex::where('table_id', $tableId)
+            ->first([
+                DB::raw('(max(`column`)) as `max_column`')
+            ]);
+
+        if ($table->max_column === 8) {
+            return;
+        }
+
+        TableIndex::where('table_id', $tableId)
+            ->where('column', '>', 8)
+            ->delete();
     }
 }
