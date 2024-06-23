@@ -2,45 +2,145 @@
 
 namespace App\Livewire;
 
+use App\Models\SearchTable;
+use App\Models\SearchTableIndex;
 use App\Models\Table;
 use App\Models\TableIndex;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use function collect;
 use function implode;
 use function strpos;
 
 class Tables extends Component
 {
+    use HasSearchTab;
+
+    public $maxRow = 6;
 
     public $columnsIndex = '';
 
     public $ignoreIds = [];
 
+    public $selectedTable = ['id' => 0, 'color' => null, 'row' => 0, 'column' => 0, 'verical_column' => 1];
+
+    public function mount()
+    {
+        $this->resetSearchTable();
+
+    }
+
+    public function resetTable()
+    {
+        if ($this->selectedTable['id'] !== 0) {
+            TableIndex::where('table_id', $this->selectedTable['id'])
+                ->update([
+                    'symbol' => null,
+                    'color' => null,
+                ]);
+            $this->reset('selectedTable');
+        }
+    }
     public function render()
     {
         $tables = Table::with('indexs')->select(['id'])
         ->whereNotIn('id', $this->ignoreIds)->latest()->paginate(10);
 
-        return view('livewire.tables', ['tables' => $tables]);
+        if ($tables->isNotEmpty() && $this->selectedTable['id'] !== $tables[0]->id) {
+            $this->selectedTable = [
+                'id' => $tables[0]->id,
+                'column' => 0,
+                'row' => 0,
+                'color' => null,
+                'verical_column' => 1
+            ];
+        }
+
+        $searchTable = SearchTable::with('indexs')
+            ->select(['id'])
+            ->first();
+        return view('livewire.tables', ['tables' => $tables, 'searchTable' => $searchTable]);
     }
 
-    public function fillColor($tableId, $color, $rowIndex, $columnIndex): void
+    public function fillColor($color): void
     {
         $symbol = in_array($color, ['red', 'blue']) ? 'O' : 'X';
         if (is_null($color)) {
             $symbol = null;
         }
 
+        // The most recent row, column filled
+        $rowIndex = $this->selectedTable['row'] + 1;
+        $columnIndex = $this->selectedTable['column'] ?: 1;
+        $tableId = $this->selectedTable['id'];
+
+        if ($this->shouldNextColumn($color)) {
+            $this->selectedTable['verical_column'] = $this->selectedTable['verical_column'] + 1;
+            $columnIndex = $this->selectedTable['verical_column'];
+            $rowIndex = 1;
+        }else if ($this->nextRowBlocked()) {
+            $columnIndex = $columnIndex + 1;
+            if ($this->isFillHorizon($columnIndex)) {
+                $rowIndex = $this->selectedTable['row'];
+            }
+        }
+
         $table = TableIndex::where([
             'table_id' => $tableId,
-            'row' => $rowIndex,
+            'row' => $rowIndex > $this->maxRow ? $this->maxRow : $rowIndex,
             'column' => $columnIndex
-        ])->update([
-            'symbol' => $symbol,
-            'color' => $color,
-        ]);
+        ])->first();
+
+        if ($table !== null) {
+            $table->update([
+                'symbol' => $symbol,
+                'color' => $color,
+            ]);
+
+           $this->updateSelectedTable($rowIndex, $columnIndex, $color);
+        }
+    }
+
+    private function updateSelectedTable($rowIndex, $columnIndex, $color): void
+    {
+        $this->selectedTable['row'] = $rowIndex > $this->maxRow ? $this->maxRow : $rowIndex;
+        $this->selectedTable['column'] = $columnIndex;
+        $this->selectedTable['color'] = $color !== 'green' ? $color :  $this->selectedTable['color'];
+    }
+
+    private function isFillHorizon($columnIndex): bool
+    {
+        return $columnIndex !== $this->selectedTable['verical_column'];
+    }
+    private function nextRowBlocked()
+    {
+        $rowIndex = ($this->selectedTable['row'] + 1);
+        $columnIndex = $this->selectedTable['column'] ?: 1;
+        $tableId = $this->selectedTable['id'];
+
+        if ($rowIndex > 6) {
+            return true;
+        }
+
+        if ($this->isFillHorizon($columnIndex)) {
+            // is fill color is horizon
+            return true;
+        }
+
+        return TableIndex::where([
+                'table_id' => $tableId,
+                'row' => $rowIndex,
+                'column' => $columnIndex,
+            ])
+            ->whereNotNull(['symbol', 'color'])
+            ->first();
+    }
+
+    private function shouldNextColumn($color)
+    {
+        return $this->selectedTable['color'] && $this->selectedTable['color'] !== $color && $color !== 'green';
     }
 
     public function addTable(): void
@@ -49,99 +149,69 @@ class Tables extends Component
         $table->indexs()->insert(Table::defineDefaultTableIndexs($table->id));
     }
 
+    public function addSearchTable(): void
+    {
+        $table = SearchTable::create();
+        $table->indexs()->insert(SearchTable::defineDefaultTableIndexs($table->id));
+    }
     public function search()
     {
         $this->ignoreIds = [];
-        $searchs = explode(' ', $this->columnsIndex, 15);
-        if (!$searchs) {
-            return;
-        }
+
         $tables = Table::with('indexs')->select(['id'])
         ->get();
 
+        $searchs = $this->collectDataSearchTable();
         foreach ($tables as $table)
         {
-            $table->indexString = '';
-            for ($i = 1; $i <= $table->indexs->max('column') ; $i++) {
-                $totalSymbol = $this->countVertical($table, $i);
-                $table->indexString.=$totalSymbol;
-            }
+            $this->collectDataTable($table);
         }
 
         $tables->each(function ($item) use ($searchs) {
-            if (strpos($item->indexString, implode('', $searchs)) === false) {
+            if (strpos($item->stringSearch, $searchs) === false) {
                 $this->ignoreIds[] = $item->id;
             }
         });
     }
 
-    public function countVertical(Table $table, int $columnIndex)
+    public function collectDataTable(Table $table)
     {
-        $tableIndexs = $table->indexs
-            ->whereIn('symbol', ['O', 'X'])
-            ->where('column', $columnIndex)
-            ->values()
-            ->sortBy('row');
-
-        if ($tableIndexs->where('symbol', 'O')->isEmpty()) {
-            // done have any symbol
-            return 0;
-        }
-        // find the init color
-        $initColor = $tableIndexs->firstWhere('color', '!=', 'green')->color;
-
-        $tableIndexs = $tableIndexs->filter(function ($item) use ($initColor) {
-            return $item->color === $initColor || $item->color === 'green';
-        });
-
-        // find the max row filled
-        $mostRecentRow = null;
-        $tableIndexs = $tableIndexs->filter(function ($item, $index) use ($tableIndexs, &$mostRecentRow) {
-            if ($index === 0) {
-                $mostRecentRow = $item->row;
-                return true;
+        $indexs =$table->indexs
+            ->where('symbol', '!=', null)
+            ->groupBy('column');
+        $string = '';
+        foreach ($indexs as $columnIndex => $column) {
+            foreach ($column as $index => $cell) {
+                $string .= $cell->symbol . $cell->color;
             }
-
-            if (is_null($mostRecentRow) || $mostRecentRow  === ($item->row - 1)) {
-                $mostRecentRow = $item->row;
-                return true;
-            }
-        });
-
-        if ($tableIndexs->where('symbol', 'O')->isEmpty()) {
-            // done have any symbol
-            return 0;
+            // $this->collectHorizon($table ,$cell->row, $cell->column, $cell->color).
+            $string .= '__';
         }
-
-        $beginRow = $tableIndexs->max('row');
-        if ($beginRow === 1) {
-            return $tableIndexs->where('symbol', 'O')->count();
-        }
-
-        // count external column
-        $countHorizon = $this->countHorizon($table, $beginRow, $columnIndex, $initColor);
-
-        return $tableIndexs->where('symbol', 'O')->count() + $countHorizon->count();
+        $table->stringSearch = trim($string, '__');
     }
 
-    public function countHorizon(Table $table, int $rowIndex, int $beginColumn, string $color)
+    public function collectHorizon($table, $rowIndex, $beginColumn, $color)
     {
+        $string = '';
         $data = $table->indexs
-        // ->whereIn('symbol', ['O', 'X'])
-        ->where('row', $rowIndex)
-        ->where('column', '>', $beginColumn)
-        ->filter(function ($item) use ($color) {
-            return ($item->symbol === 'O' && $item->color === $color) || ($item->symbol === 'X');
-        })
-        ->sortBy('column');
+            ->where('row', $rowIndex)
+            ->where('column', '>', $beginColumn)
+            ->filter(function ($item) use ($color) {
+                return ($item->symbol === 'O' && $item->color === $color) || ($item->symbol === 'X');
+            })
+            ->sortBy('column');
 
         if (!$data->isEmpty() && ($data->first()->column - 1) !== $beginColumn ) {
-            return collect();
+            return '';
         }
 
-        return $data->where('symbol', 'O')->where('color', $color);
+        foreach ($data->groupBy('column') as $columnIndex => $column) {
+            foreach ($column as $index => $cell) {
+                $string .= $cell->symbol . $cell->color;
+            }
+        }
+        return $string;
     }
-
 
     public function expandTable($tableId)
     {
@@ -171,6 +241,39 @@ class Tables extends Component
         }
 
         TableIndex::where('table_id', $tableId)
+            ->where('column', '>', 8)
+            ->delete();
+    }
+
+
+    public function expandSearchTable($tableId)
+    {
+        $table = SearchTableIndex::where('table_id', $tableId)
+            ->first([
+                DB::raw('(max(`column`)) as `max_column`')
+            ]);
+
+        if ($table->max_column === 15) {
+            return;
+        }
+
+        $data = SearchTable::defineExpandDefaultTable($tableId);
+
+        SearchTableIndex::insert($data);
+    }
+
+    public function collapseSearchTable($tableId)
+    {
+        $table = SearchTableIndex::where('table_id', $tableId)
+            ->first([
+                DB::raw('(max(`column`)) as `max_column`')
+            ]);
+
+        if ($table->max_column === 8) {
+            return;
+        }
+
+        SearchTableIndex::where('table_id', $tableId)
             ->where('column', '>', 8)
             ->delete();
     }
