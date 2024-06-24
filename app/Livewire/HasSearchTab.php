@@ -6,6 +6,7 @@ use App\Models\SearchTableIndex;
 use App\Models\TableIndex;
 use function in_array;
 use function is_null;
+use function optional;
 use function trim;
 
 trait HasSearchTab
@@ -21,19 +22,54 @@ trait HasSearchTab
         if ($this->searchTableInfo['id'] === 0) {
             $this->__loadSearchTable();
         }
-        $indexs = SearchTableIndex::where('table_id', $this->searchTableInfo['id'])
+        $table = SearchTable::where('id', $this->searchTableInfo['id'])
+            ->with('indexs')->first();
+        $indexs = $table->indexs
             ->whereNotNull('symbol')
-            ->get()
             ->groupBy('column');
         $string = '';
         foreach ($indexs as $columnIndex => $column) {
+            if ($column->first()->row !== 1) {
+                continue;
+            }
             foreach ($column as $index => $cell) {
+                $prevCell = $column[$index - 1] ?? optional();
+                if ($index !== 0 && $this->shouldStopCollect($cell, $prevCell)) {
+                    $cell = $prevCell;
+                    $cell->color = $this->getTrueColor($column, $cell, $index);
+                    break 1;
+                }
                 $string .= $cell->symbol . $cell->color;
             }
-            $string .= '__';
+            $string .= $this->collectHorizonSearchData($table ,$cell->row, $cell->column, $cell->color).'__';
         }
         return $this->stringSearch = trim($string, '__');
     }
+
+    public function collectHorizonSearchData(SearchTable $table, $rowIndex, $beginColumn, $color)
+    {
+        $string = '';
+        $data = $table->indexs
+            ->where('row', $rowIndex)
+            ->where('column', '>', $beginColumn)
+            ->where('vertical_column', '=', $beginColumn)
+            ->filter(function ($item) use ($color) {
+                return ($item->symbol === 'O' && $item->color === $color) || ($item->symbol === 'X');
+            })
+            ->sortBy('column');
+
+        if (!$data->isEmpty() && ($data->first()->column - 1) !== $beginColumn ) {
+            return '';
+        }
+
+        foreach ($data->groupBy('column') as $columnIndex => $column) {
+            foreach ($column as $index => $cell) {
+                $string .= $cell->symbol . $cell->color;
+            }
+        }
+        return $string;
+    }
+
     public function fillSearchColor($color): void
     {
         $symbol = in_array($color, ['red', 'blue']) ? 'O' : 'X';
@@ -57,6 +93,7 @@ trait HasSearchTab
         }else if ($this->__nextRowBlocked()) {
             $columnIndex = $columnIndex + 1;
             if ($this->__isFillHorizon($columnIndex)) {
+                $verticalColumn = $this->searchTableInfo['verical_column'];
                 $rowIndex = $this->searchTableInfo['row'];
             }
         }
@@ -68,10 +105,14 @@ trait HasSearchTab
         ])->first();
 
         if ($table !== null) {
-            $table->update([
+            $dataUpdate = [
                 'symbol' => $symbol,
                 'color' => $color,
-            ]);
+            ];
+            if (isset($verticalColumn)) {
+                $dataUpdate['vertical_column'] = $verticalColumn;
+            }
+            $table->update($dataUpdate);
 
             $this->__updateSearchTable($rowIndex, $columnIndex, $color);
         }
@@ -137,6 +178,7 @@ trait HasSearchTab
             ->update([
                 'symbol' => null,
                 'color' => null,
+                'vertical_column' => null,
             ]);
 
         $this->reset('searchTableInfo');

@@ -17,6 +17,7 @@ class TableIndex extends Model
         'color',
         'row',
         'index',
+        'vertical_column'
     ];
 
 }

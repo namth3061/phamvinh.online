@@ -6,12 +6,17 @@ use App\Models\SearchTable;
 use App\Models\SearchTableIndex;
 use App\Models\Table;
 use App\Models\TableIndex;
+use Exception;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use function array_flip;
+use function array_is_list;
 use function collect;
+use function count;
 use function implode;
+use function optional;
 use function strpos;
 
 class Tables extends Component
@@ -22,7 +27,7 @@ class Tables extends Component
 
     public $columnsIndex = '';
 
-    public $ignoreIds = [];
+    public $searchIds = [];
 
     public $selectedTable = ['id' => 0, 'color' => null, 'row' => 0, 'column' => 0, 'verical_column' => 1];
 
@@ -39,14 +44,19 @@ class Tables extends Component
                 ->update([
                     'symbol' => null,
                     'color' => null,
+                    'vertical_column' => null,
                 ]);
             $this->reset('selectedTable');
         }
     }
     public function render()
     {
-        $tables = Table::with('indexs')->select(['id'])
-        ->whereNotIn('id', $this->ignoreIds)->latest()->paginate(10);
+        $tables = Table::with('indexs')
+            ->select(['id'])
+            ->when($this->searchIds || $this->stringSearch, function ($query) {
+                $query->whereIn('id', $this->searchIds);
+            })
+            ->latest()->paginate(10);
 
         if ($tables->isNotEmpty() && $this->selectedTable['id'] !== $tables[0]->id) {
             $this->selectedTable = [
@@ -83,6 +93,7 @@ class Tables extends Component
         }else if ($this->nextRowBlocked()) {
             $columnIndex = $columnIndex + 1;
             if ($this->isFillHorizon($columnIndex)) {
+                $verticalColumn = $this->selectedTable['verical_column'];
                 $rowIndex = $this->selectedTable['row'];
             }
         }
@@ -94,12 +105,16 @@ class Tables extends Component
         ])->first();
 
         if ($table !== null) {
-            $table->update([
+            $dataUpdate = [
                 'symbol' => $symbol,
                 'color' => $color,
-            ]);
+            ];
+            if (isset($verticalColumn)) {
+                $dataUpdate['vertical_column'] = $verticalColumn;
+            }
+            $table->update($dataUpdate);
 
-           $this->updateSelectedTable($rowIndex, $columnIndex, $color);
+            $this->updateSelectedTable($rowIndex, $columnIndex, $color);
         }
     }
 
@@ -156,24 +171,73 @@ class Tables extends Component
     }
     public function search()
     {
-        $this->ignoreIds = [];
+        $this->searchIds = [];
 
         $tables = Table::with('indexs')->select(['id'])
+        ->latest()
         ->get();
 
         $searchs = $this->collectDataSearchTable();
+
+        if ($searchs === '') {
+            return;
+        }
+
         foreach ($tables as $table)
         {
             $this->collectDataTable($table);
         }
 
         $tables->each(function ($item) use ($searchs) {
-            if (strpos($item->stringSearch, $searchs) === false) {
-                $this->ignoreIds[] = $item->id;
+//            if (strpos($item->stringSearch, $searchs) === false) {
+            if (count($this->searchIds) === 10) {
+                return false;
             }
+            if ($this->tryMatchAgain($item->stringSearch, $searchs)) {
+                $this->searchIds[] = $item->id;
+            }
+//            }
         });
     }
 
+    public function tryMatchAgain($tableString, $searchs)
+    {
+        $searchArr = explode('__', $searchs);
+        $tableStringArr = explode('__', $tableString);
+
+        if (count($searchArr) > count($tableStringArr)) {
+            return false;
+        }
+
+        $matchResult = [];
+        foreach ($searchArr as $key => $search) {
+            foreach ($tableStringArr as $colIndex => $tableString) {
+                unset($tableStringArr[$colIndex]);
+//                if (strpos($tableString, $search) === 0) {
+                if ($tableString === $search) {
+                    $matchResult[] = ($colIndex + 1);
+                    break;
+                }
+            }
+            if (count($matchResult) < ($key + 1)) {
+                break;
+            }
+        }
+        if (count($matchResult) !== count($searchArr)) {
+            return false;
+        }
+        $isList = true;
+        foreach ($matchResult as $key => $column) {
+            if ($key === 0) {
+                continue;
+            }
+            if ($column !== ($matchResult[$key - 1] + 1)) {
+                $isList = false;
+                break;
+            }
+        }
+        return $isList;
+    }
     public function collectDataTable(Table $table)
     {
         $indexs =$table->indexs
@@ -181,21 +245,48 @@ class Tables extends Component
             ->groupBy('column');
         $string = '';
         foreach ($indexs as $columnIndex => $column) {
-            foreach ($column as $index => $cell) {
-                $string .= $cell->symbol . $cell->color;
+            if ($column->first()->row !== 1) {
+                continue;
             }
-            // $this->collectHorizon($table ,$cell->row, $cell->column, $cell->color).
-            $string .= '__';
+            foreach ($column as $index => $cell) {
+                $prevCell = $column[$index - 1] ?? optional();
+                if ($index !== 0 && $this->shouldStopCollect($cell, $prevCell)) {
+                    $cell = $prevCell;
+                    $cell->color = $this->getTrueColor($column, $cell, $index);
+                    break 1;
+                }
+                $string .= $cell->symbol . $cell->color;
+                $cell->color = $this->getTrueColor($column, $cell, $index);
+            }
+
+            $string .= $this->collectHorizon($table ,$cell->row, $cell->column, $cell->color).'__';
         }
         $table->stringSearch = trim($string, '__');
     }
 
+    public function getTrueColor($column, $cell, $index)
+    {
+        if ($cell->color !== 'green') {
+            return $cell->color;
+        }
+        if (isset($column[$index - 1])) {
+            return $this->getTrueColor($column, $column[$index - 1], ($index - 1));
+        }
+        throw new \Exception('can\'t get true color');
+    }
+    public function shouldStopCollect($cell, $prevCell)
+    {
+        return ($cell->row !== ($prevCell->row + 1)
+            || ($cell->color !== $prevCell->color && $cell->color !== 'green' && $prevCell->color !== 'green'))
+            || $cell->vertical_column !== null;
+    }
     public function collectHorizon($table, $rowIndex, $beginColumn, $color)
     {
         $string = '';
         $data = $table->indexs
             ->where('row', $rowIndex)
             ->where('column', '>', $beginColumn)
+            ->where('vertical_column', '=', $beginColumn)
             ->filter(function ($item) use ($color) {
                 return ($item->symbol === 'O' && $item->color === $color) || ($item->symbol === 'X');
             })
@@ -275,6 +366,14 @@ class Tables extends Component
 
         SearchTableIndex::where('table_id', $tableId)
             ->where('column', '>', 8)
+            ->delete();
+    }
+
+    public function deleteTable($tableId)
+    {
+        Table::where('id', $tableId)
+            ->delete();
+        TableIndex::where('table_id', $tableId)
             ->delete();
     }
 }

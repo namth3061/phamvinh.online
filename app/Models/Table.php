@@ -22,12 +22,21 @@ class Table extends Model
         return Attribute::make(get: fn () => $this->indexs->groupBy('row'));
     }
 
+    public function columns(): Attribute
+    {
+        return Attribute::make(get: fn () => $this->indexs->groupBy('column'));
+    }
+
+    public function verticalColumns(): Attribute
+    {
+        return Attribute::make(get: fn () => $this->indexs->groupBy('vertical_column'));
+    }
     public static function defineDefaultTableIndexs($tableId = null)
     {
         $columnsDefault = 8;
         $rowsDefault = 6;
         $data = [];
-        for ($i=1; $i <= $columnsDefault; $i++) { 
+        for ($i=1; $i <= $columnsDefault; $i++) {
             $temp = [
                 'column' => $i,
                 'table_id' => $tableId,
@@ -46,7 +55,7 @@ class Table extends Model
         $columnsDefault = 15;
         $rowsDefault = 6;
         $data = [];
-        for ($i=9; $i <= $columnsDefault; $i++) { 
+        for ($i=9; $i <= $columnsDefault; $i++) {
             $temp = [
                 'column' => $i,
                 'table_id' => $tableId,

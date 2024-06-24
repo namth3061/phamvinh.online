@@ -33,6 +33,29 @@
     button {
         margin-bottom: 5px;
     }
+    /* Styling for the divider cells in the first column */
+    .divider-cell {
+        position: relative; /* Ensure positioning context */
+    }
+
+    .vertical-red-line::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        border-left: 2px solid red; /* Divider line style */
+    }
+
+    .horizon-red-line::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 50%;
+        border-top: 2px solid red; /* Divider line style */
+    }
+
     @media screen and (max-width : 430px) {
         th, td {
         font-size: 20px;
@@ -45,6 +68,7 @@
             width: 100%!important;
         }
     }
+
     .box-table-flex {
         display: flex;
         width: 100%;
@@ -81,12 +105,20 @@
                 @foreach($tables as $table)
                     <button x-on:click="$wire.expandTable({{$table->id}})" class="btn btn-warning">Expand</button>
                     <button x-on:click="$wire.collapseTable({{$table->id}})" class="btn btn-danger">Collapse</button>
+                    <button x-on:click="$wire.deleteTable({{$table->id}})" class="btn btn-danger">Delete</button>
                     <div class="table-responsive">
                         <table class="table table-bordered">
                             @foreach($table->rows as $keyRow => $rows)
                                 <tr>
                                     @foreach($rows as $cell)
-                                        <td x-on:click="$wire.fillColor({{$table->id}},selectedcolor, {{$keyRow}}, {{$cell->column}})" style="color: {{$cell->color ?? 'white'}};">{{$cell->symbol}}</td>
+                                        <td
+                                            style="color: {{$cell->color ?? 'white'}}; position: relative"
+                                            class="
+                                                @if(isset($table->verticalColumns[$cell->column]) && !$cell->vertical_column) vertical-red-line @endif
+                                                @if($cell->vertical_column) horizon-red-line @endif"
+                                        >
+                                            {{$cell->symbol}}
+                                        </td>
                                     @endforeach
                                 </tr>
                             @endforeach
@@ -112,7 +144,14 @@
                             @foreach($searchTable->rows as $keyRow => $rows)
                                 <tr>
                                     @foreach($rows as $cell)
-                                        <td x-on:click="$wire.fillColor({{$searchTable->id}},selectedcolor, {{$keyRow}}, {{$cell->column}})" style="color: {{$cell->color ?? 'white'}};">{{$cell->symbol}}</td>
+                                        <td
+                                            style="color: {{$cell->color ?? 'white'}}; position: relative"
+                                            class="
+                                                @if(isset($searchTable->verticalColumns[$cell->column]) && !$cell->vertical_column) vertical-red-line @endif
+                                                @if($cell->vertical_column) horizon-red-line @endif"
+                                        >
+                                            {{$cell->symbol}}
+                                        </td>
                                     @endforeach
                                 </tr>
                             @endforeach

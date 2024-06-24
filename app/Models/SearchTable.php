@@ -62,4 +62,9 @@ class SearchTable extends Model
         }
         return $data;
     }
+
+    public function verticalColumns(): Attribute
+    {
+        return Attribute::make(get: fn () => $this->indexs->groupBy('vertical_column'));
+    }
 }
