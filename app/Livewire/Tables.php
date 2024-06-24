@@ -189,7 +189,7 @@ class Tables extends Component
         {
             $this->collectDataTable($table);
         }
-        
+
         $tables->each(function ($item) use ($searchs) {
 //            if (strpos($item->stringSearch, $searchs) === false) {
             if (count($this->searchIds) === 10) {
@@ -210,7 +210,6 @@ class Tables extends Component
         if (count($searchArr) > count($tableStringArr)) {
             return false;
         }
-
         $matchResult = [];
         foreach ($searchArr as $key => $search) {
             $matchResult[$key] = [];
@@ -225,18 +224,20 @@ class Tables extends Component
             }
         }
 
-        if (count($matchResult) !== count($searchArr)) {
+        if (count($matchResult) !== count($searchArr) || count($matchResult[0]) <= 0) {
             return false;
         }
         $firstMatch = $matchResult[0];
         unset($matchResult[0]);
+        if (count($matchResult) === 0) {
+            return true;
+        }
         foreach ($firstMatch as $key => $column) {
             $isList = $this->isList($matchResult, $column);
             if ($isList) {
                 return true;
             }
         }
-
         return false;
     }
 
