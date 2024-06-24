@@ -13,6 +13,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Component;
 use function array_flip;
 use function array_is_list;
+use function array_unshift;
 use function collect;
 use function count;
 use function implode;
@@ -162,6 +163,7 @@ class Tables extends Component
     {
         $table = Table::create();
         $table->indexs()->insert(Table::defineDefaultTableIndexs($table->id));
+        array_unshift($this->searchIds, $table->id);
     }
 
     public function addSearchTable(): void
@@ -187,7 +189,7 @@ class Tables extends Component
         {
             $this->collectDataTable($table);
         }
-
+        
         $tables->each(function ($item) use ($searchs) {
 //            if (strpos($item->stringSearch, $searchs) === false) {
             if (count($this->searchIds) === 10) {
@@ -211,32 +213,50 @@ class Tables extends Component
 
         $matchResult = [];
         foreach ($searchArr as $key => $search) {
+            $matchResult[$key] = [];
             foreach ($tableStringArr as $colIndex => $tableString) {
-                unset($tableStringArr[$colIndex]);
 //                if (strpos($tableString, $search) === 0) {
                 if ($tableString === $search) {
-                    $matchResult[] = ($colIndex + 1);
-                    break;
+                    $matchResult[$key][] = ($colIndex + 1);
                 }
             }
-            if (count($matchResult) < ($key + 1)) {
+            if (count($matchResult[$key]) < 1) {
                 break;
             }
         }
+
         if (count($matchResult) !== count($searchArr)) {
             return false;
         }
-        $isList = true;
-        foreach ($matchResult as $key => $column) {
-            if ($key === 0) {
-                continue;
-            }
-            if ($column !== ($matchResult[$key - 1] + 1)) {
-                $isList = false;
-                break;
+        $firstMatch = $matchResult[0];
+        unset($matchResult[0]);
+        foreach ($firstMatch as $key => $column) {
+            $isList = $this->isList($matchResult, $column);
+            if ($isList) {
+                return true;
             }
         }
-        return $isList;
+
+        return false;
+    }
+
+    public function isList($matchResult, $column)
+    {
+        $beginValue = $column;
+        foreach ($matchResult as $index => $value) {
+            foreach ($value as $item) {
+                if ($beginValue === ($item - 1)) {
+                    $temp = $matchResult;
+                    unset($temp[$index]);
+                   if ($temp) {
+                       return $this->isList($temp, $item);
+                   } else {
+                       return true;
+                   }
+                }
+            }
+        }
+        return false;
     }
     public function collectDataTable(Table $table)
     {

@@ -22,8 +22,10 @@ trait HasSearchTab
         if ($this->searchTableInfo['id'] === 0) {
             $this->__loadSearchTable();
         }
+
         $table = SearchTable::where('id', $this->searchTableInfo['id'])
             ->with('indexs')->first();
+
         $indexs = $table->indexs
             ->whereNotNull('symbol')
             ->groupBy('column');
