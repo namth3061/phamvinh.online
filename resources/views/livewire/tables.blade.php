@@ -7,11 +7,11 @@
     th, td {
         text-align: center!important;
         vertical-align: middle!important;
-        height: 50px;
-        width: 50px;
+        height: 35px;
+        width: 35px;
         min-width: 25px;
         font-weight: 600;
-        font-size: 28px;
+        font-size: 23px;
         padding: 0!important;
     }
     .fixed-header {
@@ -79,6 +79,15 @@
         width: 48%;
     }
 </style>
+<script>
+    function debouncedSearch() {
+        let timeout;
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+            @this.search();
+        }, 1500);
+}
+</script>
     <div class="fixed-header">
         <div class="container">
             <div class="row">
@@ -91,7 +100,7 @@
                 </div>
                 <div class="col">
                     <button x-on:click="$wire.addTable()" class="btn btn-warning">Add Table</button>
-                    <button wire:loading.attr="disabled" wire:click="search" id="findTableButton" class="btn btn-secondary">Find Matching Table</button>
+{{--                    <button wire:loading.attr="disabled" wire:click="search" id="findTableButton" class="btn btn-secondary">Find Matching Table</button>--}}
                     <div wire:loading>
                         Finding ...
                     </div>
@@ -107,7 +116,7 @@
                     <button x-on:click="$wire.collapseTable({{$table->id}})" class="btn btn-danger">Collapse</button>
                     <button x-on:click="$wire.deleteTable({{$table->id}})" class="btn btn-danger">Delete</button>
                     <div class="table-responsive">
-                        <table class="table table-bordered">
+                        <table class="table table-bordered" style="width: unset!important">
                             @foreach($table->rows as $keyRow => $rows)
                                 <tr>
                                     @foreach($rows as $cell)
@@ -133,14 +142,14 @@
         </div>
         <div class="table-box">
                 @if ($searchTable)
-                    <button x-on:click="$wire.fillSearchColor('red')" id="redButton" class="btn btn-danger">Red</button>
-                    <button x-on:click="$wire.fillSearchColor('green')" id="greenButton" class="btn btn-success">Green</button>
-                    <button x-on:click="$wire.fillSearchColor('blue')" id="blueButton" class="btn btn-primary">Blue</button>
-                    <button x-on:click="$wire.resetSearchTable()"  class="btn btn-primary">Reset</button>
+                    <button x-on:click="$wire.fillSearchColor('red');debouncedSearch()" id="redButton" class="btn btn-danger">Red</button>
+                    <button x-on:click="$wire.fillSearchColor('green');debouncedSearch()" id="greenButton" class="btn btn-success">Green</button>
+                    <button x-on:click="$wire.fillSearchColor('blue');debouncedSearch()" id="blueButton" class="btn btn-primary">Blue</button>
+                    <button x-on:click="$wire.resetSearchTable();debouncedSearch()"  class="btn btn-primary">Reset</button>
                     <div class="table-responsive">
                         <button x-on:click="$wire.expandSearchTable({{$searchTable->id}})" class="btn btn-warning">Expand</button>
                         <button x-on:click="$wire.collapseSearchTable({{$searchTable->id}})" class="btn btn-danger">Collapse</button>
-                        <table class="table table-bordered">
+                        <table class="table table-bordered" style="width: unset!important">
                             @foreach($searchTable->rows as $keyRow => $rows)
                                 <tr>
                                     @foreach($rows as $cell)
