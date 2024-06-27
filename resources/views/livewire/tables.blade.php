@@ -118,6 +118,7 @@
                 </div>
                 <div class="col col-25">
                     <button x-on:click="$wire.addTable()" class="btn btn-warning">Add Table</button>
+                    <span>{{$totalTables}} Tables</span>
 {{--                    <button wire:loading.attr="disabled" wire:click="search" id="findTableButton" class="btn btn-secondary">Find Matching Table</button>--}}
                     <div wire:loading>
                         Finding ...
@@ -164,6 +165,9 @@
                     <button x-on:click="$wire.fillSearchColor('green');debouncedSearch()" id="greenButton" class="btn btn-success">Green</button>
                     <button x-on:click="$wire.fillSearchColor('blue');debouncedSearch()" id="blueButton" class="btn btn-primary">Blue</button>
                     <button x-on:click="$wire.resetSearchTable();debouncedSearch()"  class="btn btn-primary">Reset</button>
+                    @if ($this->stringSearch)
+                        <span>{{count($this->searchIds)}} Tables matching</span>
+                    @endif
                     <div class="table-responsive">
 {{--                        <button x-on:click="$wire.expandSearchTable({{$searchTable->id}})" class="btn btn-warning">Expand</button>--}}
 {{--                        <button x-on:click="$wire.collapseSearchTable({{$searchTable->id}})" class="btn btn-danger">Collapse</button>--}}
