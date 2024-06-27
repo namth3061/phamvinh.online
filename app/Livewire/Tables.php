@@ -14,6 +14,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use function array_flip;
 use function array_is_list;
+use function array_pop;
 use function array_unshift;
 use function collect;
 use function count;
@@ -37,6 +38,7 @@ class Tables extends Component
 
     public $selectedTable = ['id' => 0, 'color' => null, 'row' => 0, 'column' => 0, 'verical_column' => 1];
 
+    public $undoState = [];
     public function mount()
     {
         $this->resetSearchTable();
@@ -62,7 +64,7 @@ class Tables extends Component
             ->when($this->searchIds || $this->stringSearch, function ($query) {
                 $query->whereIn('id', $this->searchIds);
             })
-            ->latest()->paginate(10);
+            ->latest()->simplePaginate(20);
 
         if ($tables->isNotEmpty() && $this->selectedTable['id'] !== $tables[0]->id) {
             $this->selectedTable = [
@@ -91,7 +93,7 @@ class Tables extends Component
         $rowIndex = $this->selectedTable['row'] + 1;
         $columnIndex = $this->selectedTable['column'] ?: 1;
         $tableId = $this->selectedTable['id'];
-
+        $selectTable = $this->selectedTable;
         if ($this->shouldNextColumn($color)) {
             $this->selectedTable['verical_column'] = $this->selectedTable['verical_column'] + 1;
             $columnIndex = $this->selectedTable['verical_column'];
@@ -118,12 +120,41 @@ class Tables extends Component
             if (isset($verticalColumn)) {
                 $dataUpdate['vertical_column'] = $verticalColumn;
             }
+            $this->undoState[$tableId][] = [
+                'symbol' => $table->symbol,
+                'color' => $table->color,
+                'vertical_column' => $table->vertical_column,
+                'row' => $table->row,
+                'column' => $table->column,
+                'data' => $dataUpdate,
+                'selectTable' => $selectTable,
+            ];
             $table->update($dataUpdate);
 
             $this->updateSelectedTable($rowIndex, $columnIndex, $color);
         }
     }
 
+    public function undoFilledCell()
+    {
+        if (isset($this->selectedTable['id'])) {
+            $undoState = $this->undoState[$this->selectedTable['id']] ?? [];
+            if ($undoState) {
+                $prevState = array_pop($undoState);
+                TableIndex::where('table_id', $this->selectedTable['id'])
+                    ->where([
+                        ['column', $prevState['column']],
+                        ['row', $prevState['row']],
+                    ])->update([
+                        'symbol' => $prevState['symbol'],
+                        'color' => $prevState['color'],
+                        'vertical_column' => $prevState['vertical_column'],
+                    ]);
+                $this->selectedTable = $prevState['selectTable'];
+                $this->undoState[$this->selectedTable['id']] = $undoState;
+            }
+        }
+    }
     private function updateSelectedTable($rowIndex, $columnIndex, $color): void
     {
         $this->selectedTable['row'] = $rowIndex > $this->maxRow ? $this->maxRow : $rowIndex;
@@ -168,9 +199,10 @@ class Tables extends Component
     {
         $table = Table::create();
         $table->indexs()->insert(Table::defineDefaultTableIndexs($table->id));
-       if ($this->searchIds) {
-           array_unshift($this->searchIds, $table->id);
-       }
+        if ($this->searchIds || $this->stringSearch) {
+            array_unshift($this->searchIds, $table->id);
+        }
+
     }
 
     public function addSearchTable(): void
