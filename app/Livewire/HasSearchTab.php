@@ -31,7 +31,7 @@ trait HasSearchTab
             ->groupBy('column');
         $string = '';
         foreach ($indexs as $columnIndex => $column) {
-            if ($column->first()->row !== 1) {
+            if ($column->first()->row != 1) {
                 continue;
             }
             foreach ($column as $index => $cell) {
@@ -56,11 +56,11 @@ trait HasSearchTab
             ->where('column', '>', $beginColumn)
             ->where('vertical_column', '=', $beginColumn)
             ->filter(function ($item) use ($color) {
-                return ($item->symbol === 'O' && $item->color === $color) || ($item->symbol === 'X');
+                return ($item->symbol == 'O' && $item->color == $color) || ($item->symbol == 'X');
             })
             ->sortBy('column');
 
-        if (!$data->isEmpty() && ($data->first()->column - 1) !== $beginColumn ) {
+        if (!$data->isEmpty() && ($data->first()->column - 1) != $beginColumn ) {
             return '';
         }
 
@@ -75,7 +75,7 @@ trait HasSearchTab
     public function fillSearchColor($color): void
     {
         $symbol = in_array($color, ['red', 'blue']) ? 'O' : 'X';
-        if ($this->searchTableInfo['id'] === 0) {
+        if ($this->searchTableInfo['id'] == 0) {
             $this->__loadSearchTable();
         }
 

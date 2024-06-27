@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Livewire\WithPagination;
 use function array_flip;
 use function array_is_list;
 use function array_unshift;
@@ -18,11 +19,14 @@ use function collect;
 use function count;
 use function implode;
 use function optional;
+use function request;
 use function strpos;
 
 class Tables extends Component
 {
     use HasSearchTab;
+    use WithPagination;
+    protected $paginationTheme = 'bootstrap';
 
     public $maxRow = 6;
 
@@ -163,7 +167,9 @@ class Tables extends Component
     {
         $table = Table::create();
         $table->indexs()->insert(Table::defineDefaultTableIndexs($table->id));
-        array_unshift($this->searchIds, $table->id);
+       if ($this->searchIds) {
+           array_unshift($this->searchIds, $table->id);
+       }
     }
 
     public function addSearchTable(): void
@@ -181,7 +187,7 @@ class Tables extends Component
 
         $searchs = $this->collectDataSearchTable();
 
-        if ($searchs === '') {
+        if ($searchs == '') {
             return;
         }
 
@@ -192,9 +198,6 @@ class Tables extends Component
 
         $tables->each(function ($item) use ($searchs) {
 //            if (strpos($item->stringSearch, $searchs) === false) {
-            if (count($this->searchIds) === 10) {
-                return false;
-            }
             if ($this->tryMatchAgain($item->stringSearch, $searchs)) {
                 $this->searchIds[] = $item->id;
             }
@@ -266,7 +269,7 @@ class Tables extends Component
             ->groupBy('column');
         $string = '';
         foreach ($indexs as $columnIndex => $column) {
-            if ($column->first()->row !== 1) {
+            if ($column->first()->row != 1) {
                 continue;
             }
             foreach ($column as $index => $cell) {
@@ -297,9 +300,9 @@ class Tables extends Component
     }
     public function shouldStopCollect($cell, $prevCell)
     {
-        return ($cell->row !== ($prevCell->row + 1)
-            || ($cell->color !== $prevCell->color && $cell->color !== 'green' && $prevCell->color !== 'green'))
-            || $cell->vertical_column !== null;
+        return ($cell->row != ($prevCell->row + 1)
+            || ($cell->color != $prevCell->color && $cell->color != 'green' && $prevCell->color != 'green'))
+            || $cell->vertical_column != null;
     }
     public function collectHorizon($table, $rowIndex, $beginColumn, $color)
     {
@@ -309,11 +312,11 @@ class Tables extends Component
             ->where('column', '>', $beginColumn)
             ->where('vertical_column', '=', $beginColumn)
             ->filter(function ($item) use ($color) {
-                return ($item->symbol === 'O' && $item->color === $color) || ($item->symbol === 'X');
+                return ($item->symbol == 'O' && $item->color == $color) || ($item->symbol == 'X');
             })
             ->sortBy('column');
 
-        if (!$data->isEmpty() && ($data->first()->column - 1) !== $beginColumn ) {
+        if (!$data->isEmpty() && ($data->first()->column - 1) != $beginColumn ) {
             return '';
         }
 
