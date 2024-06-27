@@ -17,6 +17,7 @@ use function array_is_list;
 use function array_unshift;
 use function collect;
 use function count;
+use function dd;
 use function implode;
 use function optional;
 use function request;
@@ -219,6 +220,10 @@ class Tables extends Component
             foreach ($tableStringArr as $colIndex => $tableString) {
 //                if (strpos($tableString, $search) === 0) {
                 if ($tableString === $search) {
+                    $matchResult[$key][] = ($colIndex + 1);
+                } elseif ((strpos($tableString, $search) !== false) && $key == (count($searchArr) - 1)) {
+                    // in the last column, using search Like %%
+
                     $matchResult[$key][] = ($colIndex + 1);
                 }
             }
