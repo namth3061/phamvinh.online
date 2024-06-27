@@ -42,6 +42,7 @@ trait HasSearchTab
                     break 1;
                 }
                 $string .= $cell->symbol . $cell->color;
+                $cell->color = $this->getTrueColor($column, $cell, $index);
             }
             $string .= $this->collectHorizonSearchData($table ,$cell->row, $cell->column, $cell->color).'__';
         }
