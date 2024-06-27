@@ -27,7 +27,7 @@ class SearchTable extends Model
 
     public static function defineDefaultTableIndexs($tableId = null)
     {
-        $columnsDefault = 8;
+        $columnsDefault = 20;
         $rowsDefault = 6;
         $data = [];
         for ($i=1; $i <= $columnsDefault; $i++) {
