@@ -65,7 +65,7 @@ class Tables extends Component
                 $query->whereIn('id', $this->searchIds);
             })
             ->latest()->simplePaginate(20);
-
+        $totalTables = Table::count();
         if ($tables->isNotEmpty() && $this->selectedTable['id'] !== $tables[0]->id) {
             $this->selectedTable = [
                 'id' => $tables[0]->id,
@@ -79,7 +79,7 @@ class Tables extends Component
         $searchTable = SearchTable::with('indexs')
             ->select(['id'])
             ->first();
-        return view('livewire.tables', ['tables' => $tables, 'searchTable' => $searchTable]);
+        return view('livewire.tables', ['tables' => $tables, 'searchTable' => $searchTable, 'totalTables' => $totalTables]);
     }
 
     public function fillColor($color): void
@@ -333,7 +333,7 @@ class Tables extends Component
         if (isset($column[$index - 1])) {
             return $this->getTrueColor($column, $column[$index - 1], ($index - 1));
         }
-        throw new \Exception('can\'t get true color');
+        return '%%';
     }
     public function shouldStopCollect($cell, $prevCell)
     {
@@ -349,6 +349,10 @@ class Tables extends Component
             ->where('column', '>', $beginColumn)
             ->where('vertical_column', '=', $beginColumn)
             ->filter(function ($item) use ($color) {
+                if ($color == '%%') {
+                    // the first cell is green, that mean you can collect all color
+                    return true;
+                }
                 return ($item->symbol == 'O' && $item->color == $color) || ($item->symbol == 'X');
             })
             ->sortBy('column');
