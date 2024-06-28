@@ -202,6 +202,8 @@ class Tables extends Component
         if ($this->searchIds || $this->stringSearch) {
             array_unshift($this->searchIds, $table->id);
         }
+        // reset undo state
+        $this->undoState = [];
 
     }
 
@@ -236,6 +238,7 @@ class Tables extends Component
             }
 //            }
         });
+        $this->resetPage();
     }
 
     public function tryMatchAgain($tableString, $searchs)
