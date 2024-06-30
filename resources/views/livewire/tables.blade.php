@@ -99,11 +99,14 @@
 </style>
 <script>
     function debouncedSearch() {
-        let timeout;
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-            @this.search();
-        }, 1500);
+        console.log('Searched')
+        // @this.search();
+        //
+        // let timeout;
+        // clearTimeout(timeout);
+        // timeout = setTimeout(() => {
+        //     @this.search();
+        // }, 1500);
 }
 </script>
     <div class="fixed-header">
@@ -161,10 +164,19 @@
         </div>
         <div class="table-box">
                 @if ($searchTable)
-                    <button x-on:click="$wire.fillSearchColor('red');debouncedSearch()" id="redButton" class="btn btn-danger">Red</button>
-                    <button x-on:click="$wire.fillSearchColor('green');debouncedSearch()" id="greenButton" class="btn btn-success">Green</button>
-                    <button x-on:click="$wire.fillSearchColor('blue');debouncedSearch()" id="blueButton" class="btn btn-primary">Blue</button>
+                    <button x-on:click="$wire.fillSearchColor('red');debouncedSearch()"
+                            wire:loading.attr="disabled"
+                            id="redButton" class="btn btn-danger">Red</button>
+                    <button x-on:click="$wire.fillSearchColor('green');debouncedSearch()" id="greenButton"
+                            wire:loading.attr="disabled"
+                            class="btn btn-success">Green</button>
+                    <button x-on:click="$wire.fillSearchColor('blue');debouncedSearch()" id="blueButton"
+                            wire:loading.attr="disabled"
+                            class="btn btn-primary">Blue</button>
                     <button x-on:click="$wire.resetSearchTable();debouncedSearch()"  class="btn btn-primary">Reset</button>
+                    <button  wire:loading.attr="disabled" x-on:click="@this.search()"
+                             class="btn btn-secondary">Search</button>
+
                     @if ($this->stringSearch)
                         <span>{{count($this->searchIds)}} Tables matching</span>
                     @endif
