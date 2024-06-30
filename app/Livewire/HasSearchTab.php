@@ -4,6 +4,7 @@ namespace App\Livewire;
 use App\Models\SearchTable;
 use App\Models\SearchTableIndex;
 use App\Models\TableIndex;
+use function array_pop;
 use function in_array;
 use function is_null;
 use function optional;
@@ -14,6 +15,8 @@ trait HasSearchTab
     public $searchTableInfo = ['id' => 0, 'color' => null, 'row' => 0, 'column' => 0, 'verical_column' => 1];
 
     public $stringSearch = '';
+
+    public $undoSearchState = [];
 
     public function collectDataSearchTable()
     {
@@ -88,6 +91,7 @@ trait HasSearchTab
         $rowIndex = $this->searchTableInfo['row'] + 1;
         $columnIndex = $this->searchTableInfo['column'] ?: 1;
         $tableId = $this->searchTableInfo['id'];
+        $searchTableInfo = $this->searchTableInfo;
 
         if ($this->__shouldNextColumn($color)) {
             $this->searchTableInfo['verical_column'] = $this->searchTableInfo['verical_column'] + 1;
@@ -115,6 +119,15 @@ trait HasSearchTab
             if (isset($verticalColumn)) {
                 $dataUpdate['vertical_column'] = $verticalColumn;
             }
+            $this->undoSearchState[$tableId][] = [
+                'symbol' => $table->symbol,
+                'color' => $table->color,
+                'vertical_column' => $table->vertical_column,
+                'row' => $table->row,
+                'column' => $table->column,
+                'data' => $dataUpdate,
+                'searchTableInfo' => $searchTableInfo,
+            ];
             $table->update($dataUpdate);
 
             $this->__updateSearchTable($rowIndex, $columnIndex, $color);
@@ -184,8 +197,28 @@ trait HasSearchTab
                 'vertical_column' => null,
             ]);
 
-        $this->reset('searchTableInfo');
+        $this->reset('searchTableInfo', 'undoSearchState');
     }
 
+    public function undoFilledSearchCell()
+    {
+        if (isset($this->searchTableInfo['id'])) {
+            $undoState = $this->undoSearchState[$this->searchTableInfo['id']] ?? [];
+            if ($undoState) {
+                $prevState = array_pop($undoState);
+                SearchTableIndex::where('table_id', $this->searchTableInfo['id'])
+                    ->where([
+                        ['column', $prevState['column']],
+                        ['row', $prevState['row']],
+                    ])->update([
+                        'symbol' => $prevState['symbol'],
+                        'color' => $prevState['color'],
+                        'vertical_column' => $prevState['vertical_column'],
+                    ]);
+                $this->searchTableInfo = $prevState['searchTableInfo'];
+                $this->undoSearchState[$this->searchTableInfo['id']] = $undoState;
+            }
+        }
+    }
 }
 
