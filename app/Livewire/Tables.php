@@ -276,7 +276,7 @@ class Tables extends Component
             return true;
         }
         foreach ($firstMatch as $key => $column) {
-            $isList = $this->isList($matchResult, $column);
+            $isList = $this->isList($matchResult, $column, $key);
             if ($isList) {
                 return true;
             }
@@ -284,20 +284,19 @@ class Tables extends Component
         return false;
     }
 
-    public function isList($matchResult, $column)
+    public function isList($matchResult, $column, int $key): bool
     {
+        $key++;
         $beginValue = $column;
-        foreach ($matchResult as $index => $value) {
-            foreach ($value as $item) {
-                if ($beginValue === ($item - 1)) {
-                    $temp = $matchResult;
-                    unset($temp[$index]);
-                   if ($temp) {
-                       return $this->isList($temp, $item);
-                   } else {
-                       return true;
-                   }
-                }
+        $nextColumn = $matchResult[$key] ?? [];
+        foreach ($nextColumn as $index => $item) {
+            if ($beginValue === ($item - 1)) {
+               if (isset($matchResult[$key + 1])) {
+                   unset($matchResult[$key]);
+                   return $this->isList($matchResult, $item, $key);
+               } else {
+                   return true;
+               }
             }
         }
         return false;

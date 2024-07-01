@@ -177,7 +177,10 @@
                     <button  wire:loading.attr="disabled" x-on:click="@this.search()"
                              class="btn btn-secondary">Search</button>
 
-                    @if ($this->stringSearch)
+                    <button  wire:loading.attr="disabled" x-on:click="$wire.undoFilledSearchCell()" class="btn btn-primary">Undo</button>
+
+
+            @if ($this->stringSearch)
                         <span>{{count($this->searchIds)}} Tables matching</span>
                     @endif
                     <div class="table-responsive">
