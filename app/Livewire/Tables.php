@@ -256,9 +256,8 @@ class Tables extends Component
 //                if (strpos($tableString, $search) === 0) {
                 if ($tableString === $search) {
                     $matchResult[$key][] = ($colIndex + 1);
-                } elseif ((strpos($tableString, $search) !== false) && $key == (count($searchArr) - 1)) {
+                } elseif ((strpos($tableString, $search) === 0) && $key == (count($searchArr) - 1)) {
                     // in the last column, using search Like %%
-
                     $matchResult[$key][] = ($colIndex + 1);
                 }
             }
