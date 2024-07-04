@@ -220,5 +220,27 @@ trait HasSearchTab
             }
         }
     }
+
+    public function swapColor()
+    {
+        $indexs = SearchTableIndex::where('table_id', $this->searchTableInfo['id'])
+            ->where([
+                'symbol' => 'O'
+            ])->get();
+            $indexs->groupBy('color')->each(function ($items, $color) {
+                $color =  match($color) {
+                    'red' => 'blue',
+                    'blue' => 'red'
+                };
+                SearchTableIndex::whereIn('id', $items->pluck('id')->toArray())->update([
+                    'color' => $color
+                ]);
+
+                if ($this->searchTableInfo['color']) {
+                    $this->searchTableInfo['color'] = $color;
+                }
+            });
+    }
+
 }
 

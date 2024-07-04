@@ -178,6 +178,7 @@
                              class="btn btn-secondary">Search</button>
 
                     <button  wire:loading.attr="disabled" x-on:click="$wire.undoFilledSearchCell()" class="btn btn-primary">Undo</button>
+                    <button  wire:loading.attr="disabled" x-on:click="$wire.swapColor()" class="btn btn-warning">Swap</button>
 
 
             @if ($this->stringSearch)
