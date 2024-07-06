@@ -39,6 +39,11 @@ class Tables extends Component
     public $selectedTable = ['id' => 0, 'color' => null, 'row' => 0, 'column' => 0, 'verical_column' => 1];
 
     public $undoState = [];
+
+    public $matchedTableColumns = [];
+
+    public $table;
+
     public function mount()
     {
         $this->resetSearchTable();
@@ -215,7 +220,7 @@ class Tables extends Component
     public function search()
     {
         $this->searchIds = [];
-
+        $this->matchedTableColumns = [];
         $tables = Table::with('indexs')->select(['id'])
         ->latest()
         ->get();
@@ -233,8 +238,12 @@ class Tables extends Component
 
         $tables->each(function ($item) use ($searchs) {
 //            if (strpos($item->stringSearch, $searchs) === false) {
+            $this->matchedTableColumns[$item->id] = [];
+            $this->table = $item;
             if ($this->tryMatchAgain($item->stringSearch, $searchs)) {
                 $this->searchIds[] = $item->id;
+            } else {
+                unset($this->matchedTableColumns[$item->id]);
             }
 //            }
         });
@@ -272,10 +281,11 @@ class Tables extends Component
         $firstMatch = $matchResult[0];
         unset($matchResult[0]);
         if (count($matchResult) === 0) {
+            $this->matchedTableColumns[$this->table->id][] = $firstMatch[0];
             return true;
         }
         foreach ($firstMatch as $key => $column) {
-            $isList = $this->isList($matchResult, $column, $key);
+            $isList = $this->isList($matchResult, $column, 0);
             if ($isList) {
                 return true;
             }
@@ -288,16 +298,20 @@ class Tables extends Component
         $key++;
         $beginValue = $column;
         $nextColumn = $matchResult[$key] ?? [];
+        $tableId = $this->table->id;
+        $this->matchedTableColumns[$tableId][] = $column;
         foreach ($nextColumn as $index => $item) {
             if ($beginValue === ($item - 1)) {
                if (isset($matchResult[$key + 1])) {
                    unset($matchResult[$key]);
                    return $this->isList($matchResult, $item, $key);
                } else {
-                   return true;
+                    $this->matchedTableColumns[$tableId][] = $item;
+                    return true;
                }
             }
         }
+        $this->matchedTableColumns[$tableId] = [];
         return false;
     }
     public function collectDataTable(Table $table)
