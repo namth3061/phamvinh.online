@@ -55,6 +55,9 @@
         top: 50%;
         border-top: 2px solid red; /* Divider line style */
     }
+    .hight-light {
+        background-color: #f3e99566;
+    }
 
     @media screen and (max-width : 430px) {
         th, td {
@@ -147,7 +150,16 @@
                                             style="color: {{$cell->color ?? 'white'}}; position: relative"
                                             class="
                                                 @if(isset($table->verticalColumns[$cell->column]) && !$cell->vertical_column) vertical-red-line @endif
-                                                @if($cell->vertical_column) horizon-red-line @endif"
+                                                @if($cell->vertical_column) horizon-red-line @endif
+                                                @if(
+                                                    isset($this->matchedTableColumns[$table->id])
+                                                    &&
+                                                    (
+                                                        (in_array($cell->column, $this->matchedTableColumns[$table->id]) && $cell->vertical_column == null)
+                                                        || in_array($cell->vertical_column, $this->matchedTableColumns[$table->id])
+                                                    )
+                                                    && $cell->symbol) hight-light 
+                                                @endif"
                                         >
                                             {{$cell->symbol}}
                                         </td>
