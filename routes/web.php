@@ -13,6 +13,13 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+Route::get('/bcr', 'BcrController@index');
+Route::post('/bcr/data', 'BcrController@data');
+Route::get('/bcr/download', 'BcrController@download');
+Route::post('/bcr/store', 'BcrController@store');
+Route::delete('/bcr/delete/{id}', 'BcrController@delete');
+
+
 Route::get('/', 'HomeController@index');
 Route::post('/data', 'HomeController@data');
 Route::get('/download', 'HomeController@download');

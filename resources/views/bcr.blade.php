@@ -94,7 +94,7 @@
                             </div>
                             <!-- /.card-header -->
                             <!-- form start -->
-                            <form role="form" id="formNumbers" action="/store">
+                            <form role="form" id="formNumbers" action="/bcr/store">
                                 <div class="card-body">
                                     <div class="form-group">
                                         <label for="exampleInputEmail1">Nhập dãy số</label>
@@ -119,7 +119,7 @@
                                                                                class="font-weight-bold">{{ $totalRecords }}</span>
                                 </h3>
                                 <button class="btn btn-dark" style="float: right">
-                                    <a href="/download" style="color: white">
+                                    <a href="/bcr/download" style="color: white">
                                         File 👇
                                     </a>
                                 </button>
@@ -184,7 +184,7 @@
         processing: true,
         serverSide: true,
         ajax: {
-            url: "/data",
+            url: "/bcr/data",
             dataType: "json",
             type: "POST",
             data: function (d) {
@@ -240,7 +240,7 @@
         var formData = $(this).serialize();
 
         $.ajax({
-            url: '/store',
+            url: '/bcr/store',
             type: 'POST',
             data: formData,
             success: function (response) {
@@ -261,7 +261,7 @@
 
     function deleteRecord(id) {
         $.ajax({
-            url: '/delete/' + id,
+            url: '/bcr/delete/' + id,
             type: 'DELETE',
             success: function (response) {
                 table.draw();
